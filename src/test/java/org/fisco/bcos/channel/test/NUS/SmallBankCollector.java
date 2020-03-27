@@ -94,6 +94,7 @@ public class SmallBankCollector {
     public void onMessage(TransactionReceipt receipt, Long cost) {
         try {
             if (!receipt.isStatusOK()) {
+                System.out.println("receipt error! status: " + receipt.getStatus());
                 error.addAndGet(1);
             }
 

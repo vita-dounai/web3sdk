@@ -44,6 +44,8 @@ public class SmallBankTest {
     private Random random;
     private SmallBankCollector collector;
     private static CountDownLatch latch;
+    private int hotCount;
+    private int hotProb;
 
     public Web3j getWeb3() {
         return web3;
@@ -69,7 +71,10 @@ public class SmallBankTest {
         this.collector = collector;
     }
 
-    public SmallBankTest() throws Exception {
+    public SmallBankTest(int hotCount, int hotProb) throws Exception {
+        this.hotCount = hotCount;
+        this.hotProb = hotProb;
+
         ApplicationContext context = new ClassPathXmlApplicationContext("classpath:applicationContext.xml");
         Service service = context.getBean(Service.class);
         service.setGroupId(1);
@@ -92,7 +97,13 @@ public class SmallBankTest {
     }
 
     public String getUser() {
-        int user = random.nextInt(userCount);
+        int prob = random.nextInt(100);
+        int user = -1;
+        if (prob < this.hotProb) {
+            user = random.nextInt(hotCount);
+        } else {
+            user = random.nextInt(userCount - hotCount) + hotCount;
+        }
         return Integer.toString(user);
     }
 
@@ -109,6 +120,8 @@ public class SmallBankTest {
             threadPool.initialize();
 
             smallBank = SmallBank.deploy(web3, credentials, gasProvider).send();
+            smallBank.enableParallel().send();
+
             AtomicLong signed = new AtomicLong(0);
             latch = new CountDownLatch(count);
 
@@ -214,7 +227,8 @@ public class SmallBankTest {
                         if (currentSent % (count / 10) == 0) {
                             long elapsed = System.currentTimeMillis() - startTime;
                             double speed = currentSent / ((double) elapsed / 1000);
-                            System.out.println("already sent: " + String.valueOf(currentSent * 100 / count + "%, QPS=" + speed));
+                            System.out.println(
+                                    "already sent: " + String.valueOf(currentSent * 100 / count + "%, QPS=" + speed));
                         }
 
                         latch.countDown();
